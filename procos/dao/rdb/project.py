@@ -17,6 +17,7 @@ class ProjectDAO(BaseDAO[Projects]):
         return await self._get_list()
 
     async def add_project(self, data: dict):
-        stmt = insert(self.model).values(**data).returning(self.model)
+        stmt = insert(Projects).values(**data).returning(Projects)
         new_project = await self.session.execute(stmt)
+        await self.session.commit()
         return new_project.scalar()

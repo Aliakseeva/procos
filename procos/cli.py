@@ -10,35 +10,31 @@ Features:
 
 import re
 import sys
-import inspect
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
 from procos.dao.holder import HolderDao
 
-try:
-    import readline  # noqa: adds readline semantics to input()
-except ImportError:
-    pass
-import textwrap
-import random
-from copy import deepcopy
-
-try:
-    from shutil import get_terminal_size
-except ImportError:
-    try:
-        from backports.shutil_get_terminal_size import get_terminal_size
-    except ImportError:
-        def get_terminal_size(fallback=(80, 24)):
-            return fallback
-
-# The current context.
+# try:
+#     import readline  # noqa: adds readline semantics to input()
+# except ImportError:
+#     pass
 #
-# Commands will only be available if their context is "within" the currently
+# try:
+#     from shutil import get_terminal_size
+# except ImportError:
+#     try:
+#         from backports.shutil_get_terminal_size import get_terminal_size
+#     except ImportError:
+#         def get_terminal_size(fallback=(80, 24)):
+#             return fallback
+
+# Commands will only be available if their current context is "within" the currently
 # active context, a function defined by '_match_context()`.
 current_context = None
 # The separator that defines the context hierarchy
 CONTEXT_SEP = '.'
+# Standard commands look
+CMD_HELP = 'help'
+CMD_QUIT = 'quit'
 
 
 def set_context(new_context):
@@ -52,7 +48,7 @@ def set_context(new_context):
     current_context = new_context
 
 
-def get_context():
+def get_context() -> str:
     """Get the current command context."""
     return current_context
 
@@ -88,16 +84,11 @@ def _match_context(context, active_context):
 
     A context matches if the active context is "within" the pattern's context.
 
-    For example:
-
-    * ``ham.spam`` is within ``ham.spam``
-    * ``ham.spam`` is within ``ham``
-    * ``ham.spam`` is within ``None``.
-    * ``ham.spam`` is not within ``ham.spam.eggs``
-    * ``ham.spam`` is not within ``spam`` or ``eggs``
-    * ``None`` is within ``None`` and nothing else.
-
     """
+    if context is None and active_context is not None:
+        # If command has no context, and we have, no match
+        return False
+
     if context is None:
         # If command has no context, it always matches
         return True
@@ -228,7 +219,12 @@ class Pattern:
             take -= 1  # backtrack
 
     def is_active(self):
-        """Return True if a command is active in the current context."""
+        """
+        Return True if a command is active in the current context.
+        [help] and [quit] are always active
+        """
+        if self.orig_pattern in (CMD_HELP, CMD_QUIT):
+            return True
         return _match_context(self.pattern_context, current_context)
 
     def ctx_order(self):
@@ -286,27 +282,36 @@ class Pattern:
 
 async def get_help(**_):
     """Get a list of the commands you can give."""
-    print('Список доступных команд:')
+    print('Available commands:')
     cmds = sorted(c.orig_pattern for c, _, _ in commands if c.is_active())
-    cmds.insert(0, cmds.pop(cmds.index('help')))  # Перемещение команды help в начало списка для красоты
+    cmds.insert(0, cmds.pop(cmds.index(CMD_HELP)))  # Перемещение команды help в начало списка для красоты
     for c in cmds:
         print(c)
 
 
 commands = [
-    (Pattern('help'), get_help, {}),  # help command is built-in
-    (Pattern('quit'), sys.exit, {}),  # quit command is built-in
+    (Pattern(CMD_HELP), get_help, {}),  # help command is built-in
+    (Pattern(CMD_QUIT), sys.exit, {}),  # quit command is built-in
 ]
 
 
-def prompt():
+def get_prompt() -> str:
     """Get the prompt text."""
-    return '> '
+    prompt = '| | Main menu |'
+    context = get_context()
+    if context:
+        levels = context.split(sep='.')
+        for i, level in enumerate(levels, start=2):
+            prompt += f' {level.capitalize()} |'
+            # prompt += f'--{"-" * i} {level.capitalize()}\n'
+    prompt += '\n> '
+    return prompt
 
 
-def unknown_command(command):
+async def unknown_command(command):
     """Called when a command is unknown."""
-    print('Неизвестная команда [%s].' % command)
+    print('Unknown command [%s].' % command)
+    await get_help()
 
 
 def when(command: str, context=None, **kwargs):
@@ -338,7 +343,7 @@ def _available_commands():
     return available_commands
 
 
-async def _handle_command(dao: HolderDao, cmd: str):
+async def handle_command(dao: HolderDao, cmd: str):
     """Handle a command typed by the user."""
     input_words: list = cmd.lower().split()
 
@@ -352,13 +357,13 @@ async def _handle_command(dao: HolderDao, cmd: str):
         if matches is not None:
             args.update(matches)
             # any command except quit
-            if pattern.orig_pattern != 'quit':
+            if pattern.orig_pattern != CMD_QUIT:
                 args['dao'] = dao
                 args['cmd'] = cmd
             await func(**args)
             break
     else:
-        unknown_command(cmd)
+        await unknown_command(cmd)
     print()
 
 
@@ -378,26 +383,3 @@ async def _handle_command(dao: HolderDao, cmd: str):
 #     paragraphs = re.split(r'\n(?:[ \t]*\n)', msg)
 #     formatted = (textwrap.fill(p.strip(), width=width) for p in paragraphs)
 #     print('\n\n'.join(formatted))
-
-
-async def cli(pool):
-    """Run the program."""
-    # while True:
-    #     try:
-    #         cmd = input(prompt()).strip()
-    #     except EOFError as err:
-    #         print(err)
-    #         print('See you soon!')
-    #         break
-    #     if not cmd:
-    #         continue
-    #     async with pool() as session:
-    #         dao = HolderDao(session=session)
-    #         await _handle_command(dao, cmd)
-    while True:
-        cmd = input(prompt()).strip()
-        if not cmd:
-            continue
-        async with pool() as session:
-            dao = HolderDao(session=session)
-            await _handle_command(dao, cmd)

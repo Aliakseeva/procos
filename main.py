@@ -1,5 +1,5 @@
 import asyncio
-from procos.cli import cli
+from procos.cli import handle_command, get_prompt
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from procos.handlers import *  # noqa: F401
@@ -13,18 +13,24 @@ def create_pool(db_url: str, echo: bool):
     return async_session
 
 
-def run():
+async def main():
     """Wrapper for command line"""
     config = load_config()
     pool = create_pool(db_url=config.db.DATABASE_URL, echo=False)
-    try:
-        asyncio.run(cli(pool))
-    except EOFError as err:
-        print(err)
-        print('See you soon!')
-    except Exception as e:
-        print(e)
+
+    while True:
+        cmd = input(get_prompt()).strip()
+        if not cmd:
+            continue
+        async with pool() as session:
+            dao = HolderDao(session=session)
+            await handle_command(dao, cmd)
+
+
+def run():
+    asyncio.run(main())
 
 
 if __name__ == '__main__':
+    """Run the program."""
     run()
