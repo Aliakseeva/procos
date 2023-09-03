@@ -3,7 +3,7 @@ from typing import Iterable
 from procos.cli import when, set_context, get_context
 from procos.dao.holder import HolderDao
 from procos.database.models import Projects
-from procos.services.general import data_as_markdown, check_input
+from procos.services.general import data_as_table, check_id_input
 
 
 @when('project', context=None)
@@ -18,7 +18,7 @@ async def list_all_projects(dao: HolderDao, **_):
     """list all projects."""
     projects: list[Projects] = await dao.project.get_projects_list()
     if projects:
-        print(data_as_markdown([project.to_df() for project in projects]))
+        print(data_as_table([project.to_df() for project in projects]))
     else:
         print('There is not any projects exists.')
 
@@ -44,15 +44,16 @@ async def attach_contract_to_project(dao: HolderDao, project_id_: int = None, **
     if project_id_ is None:
         active_contract_exits = await check_active_contracts(dao=dao)
         if active_contract_exits:
-            projects = await dao.project.get_projects_list()  # TODO: не во все проекты можно добавить контракт
-            if projects:
+            free_projects = await dao.project.get_free_projects()
+            print(free_projects)
+            if free_projects:
                 print(f'Choose the project to attach a contract to:')
-                for project in projects:
+                for project in free_projects:
                     print(project)
-                allowed_values = map(lambda x: x.id_, projects)
-                project_id_ = int(input(f'Input the project ID:\n'
-                                        f'... '))
-                if not check_input(user_input=project_id_, allowed_values=allowed_values):
+                allowed_values = map(lambda x: x.id_, free_projects)
+                project_id_ = check_id_input(input(f'Input the project ID:\n'
+                                                   f'... '), allowed_values=allowed_values)
+                if not project_id_:
                     print('Wrong input.')
                     return
             else:
@@ -66,12 +67,13 @@ async def attach_contract_to_project(dao: HolderDao, project_id_: int = None, **
     active_contracts = await dao.contract.get_contracts_with_status(status='active')
     for contract in active_contracts:
         print(contract)
-    contract_id_ = int(input(f'Input the contract ID:\n'
-                             f'... '))
     allowed_values = map(lambda x: x.id_, active_contracts)
-    if not check_input(user_input=contract_id_, allowed_values=allowed_values):
+    contract_id_ = check_id_input(input(f'Input the contract ID:\n'
+                                        f'... '), allowed_values=allowed_values)
+    if not contract_id_:
         print('Wrong input.')
         return
+    await dao.commit()      # на случай, если выбор договора был прерван
     attached = await dao.contract.attach_to_project(project_id_=project_id_,
                                                     contract_id_=contract_id_)
     if attached:

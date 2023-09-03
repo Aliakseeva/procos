@@ -2,7 +2,7 @@ from procos.cli import when, set_context, get_context
 from procos.dao.holder import HolderDao
 from procos.database.models import Contracts
 from pandas import DataFrame
-from procos.services.general import data_as_markdown, check_input
+from procos.services.general import data_as_table, check_id_input
 
 
 @when('contract', context=None)
@@ -17,7 +17,7 @@ async def list_all_contracts(dao: HolderDao, **_):
     """list all contracts."""
     contracts: list[Contracts] = await dao.contract.get_contracts_list()
     if contracts:
-        print(data_as_markdown([contract.to_df() for contract in contracts]))
+        print(data_as_table([contract.to_df() for contract in contracts]))
     else:
         print('There is not any contract exists.')
 
@@ -46,9 +46,9 @@ async def change_contract_status(dao: HolderDao, cmd: str, **_):
         show_contracts(contracts_list=contracts_list)
 
         print(f'Input the ID {cmd} the contract:')
-        id_ = int(input('... '))
         allowed_values = map(lambda x: x.id_, contracts_list)
-        if not check_input(user_input=id_, allowed_values=allowed_values):
+        id_ = check_id_input(input('... '), allowed_values=allowed_values)
+        if not id_:
             print('Wrong input.')
             return
         await change_status_service(id_=id_,

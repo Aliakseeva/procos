@@ -1,14 +1,24 @@
 from pandas import DataFrame
+from tabulate import tabulate
 
 
-def data_as_markdown(data: list[dict]) -> str:
+TABLE_STYLE = 'fancy_grid'      # fancy_grid, pretty, grid
+TABLE_ALIGN = 'left'        # "right", "center", "left", None
+
+
+def data_as_table(data: list[dict]) -> str:
     """Convert database models to human-readable tables."""
+
     index = [i for i in range(1, len(data) + 1)]
     df = DataFrame(data, index=index)
-    return df.to_markdown()
+    return tabulate(df, headers='keys', tablefmt=TABLE_STYLE, stralign=TABLE_ALIGN)
 
 
-def check_input(user_input: int | str, allowed_values: list) -> bool:
+def check_id_input(user_input: str, allowed_values: list) -> int | None:
     """Check if user's input is allowed."""
-    return user_input in allowed_values
+    if not user_input.isdigit():
+        return
+    if int(user_input) not in allowed_values:
+        return
+    return int(user_input)
 

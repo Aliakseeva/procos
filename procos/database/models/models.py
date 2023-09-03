@@ -18,7 +18,7 @@ class Contracts(Base):
     status: Mapped[str] = mapped_column(default='draft')
     # CheckConstraint(r"contracts.status IN ('draft', 'active', 'closed')"
     project_id_: Mapped[int] = mapped_column(ForeignKey('projects.id_'), nullable=True)
-    project: Mapped['Projects'] = relationship("Projects", back_populates='contracts')
+    project: Mapped['Projects'] = relationship("Projects", back_populates='contracts', lazy='selectin')
 
     def __str__(self):
         result = ''
@@ -28,23 +28,15 @@ class Contracts(Base):
         return result
 
     def to_df(self):
+        project: Projects = f'ID {self.project.id_}: {self.project.title}' if self.project else '-'
         signed = self.signed_date if self.signed_date else '-'
         return {
             'id': self.id_,
             'title': self.title,
             'status': self.status,
-            'created (yy-m-d)': self.created_date,
-            'signed (yy-m-d)': signed,
-        }
-
-    def to_join(self):
-        signed = self.signed_date if self.signed_date else '-'
-        return {
-            'contract id': self.id_,
-            'contract title': self.title,
-            'contract status': self.status,
-            'contract created (yy-m-d)': self.created_date,
-            'contract signed (yy-m-d)': signed,
+            'created, yy-m-d': self.created_date,
+            'signed, yy-m-d': signed,
+            'project ID, title': project,
         }
 
 
@@ -67,12 +59,14 @@ class Projects(Base):
         return result
 
     def to_df(self):
-        # print(self.contracts)
-        # c = {contract.to_join() for contract in self.contracts}
-        # print(contracts)
+        contract: Contracts
+        contracts = \
+            [f'ID {contract.id_}: {contract.title} [{contract.status}]'
+             for contract in self.contracts] \
+            if self.contracts else '-'
         return {
             'id': self.id_,
             'title': self.title,
-            'created (yy-m-d)': self.created_date,
-            # **contracts,
+            'created, yy-m-d': self.created_date,
+            'contracts ID, title, status': '\n'.join(contracts),
         }
