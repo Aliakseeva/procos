@@ -2,26 +2,19 @@ from procos.cli import when, set_context, get_context
 from procos.dao.holder import HolderDao
 from procos.database.models import Contracts
 from pandas import DataFrame
-from procos.services.general import data_as_markdown
+from procos.services.general import data_as_markdown, check_input
 
 
 @when('contract', context=None)
 async def contract_menu(**_):
-    print('Menu ~CONTRACT~\n'
-          'Available commands:\n'
-          '\t[list] - list all contracts;\n'
-          '\t[create] - create new contract;\n'
-          '\t[confirm] - switch contract status to ACTIVE;\n'
-          '\t[complete] - switch contract status to COMPLETED;\n'
-          '\n'
-          '[back] - get back to the main menu.\n'
-          )
+    """show contract menu."""
     context = 'contract'
     set_context(context)
 
 
 @when('list', context='contract')
 async def list_all_contracts(dao: HolderDao, **_):
+    """list all contracts."""
     contracts: list[Contracts] = await dao.contract.get_contracts_list()
     if contracts:
         print(data_as_markdown([contract.to_df() for contract in contracts]))
@@ -31,6 +24,7 @@ async def list_all_contracts(dao: HolderDao, **_):
 
 @when('create', context='contract')
 async def create_new_contract(dao: HolderDao, **_):
+    """create a new contract."""
     print('Input the title:')
     title = input('... ')
     created: Contracts | None = await dao.contract.add_contract({'title': title})
@@ -43,6 +37,7 @@ async def create_new_contract(dao: HolderDao, **_):
 @when('confirm', context='contract')
 @when('complete', context='contract')
 async def change_contract_status(dao: HolderDao, cmd: str, **_):
+    """switch contract status."""
     current_status = get_current_status(cmd=cmd)
     new_status = get_new_status(cmd=cmd)
     contracts_list: list[Contracts] = await choose_contract(dao=dao, status=current_status)
@@ -52,6 +47,10 @@ async def change_contract_status(dao: HolderDao, cmd: str, **_):
 
         print(f'Input the ID {cmd} the contract:')
         id_ = int(input('... '))
+        allowed_values = map(lambda x: x.id_, contracts_list)
+        if not check_input(user_input=id_, allowed_values=allowed_values):
+            print('Wrong input.')
+            return
         await change_status_service(id_=id_,
                                     dao=dao,
                                     contracts_list=contracts_list,
@@ -63,6 +62,7 @@ async def change_contract_status(dao: HolderDao, cmd: str, **_):
 
 @when('back', context='contract')
 async def back(**_):
+    """get back to the main menu."""
     context = None
     set_context(context)
 

@@ -34,7 +34,9 @@ current_context = None
 CONTEXT_SEP = '.'
 # Standard commands look
 CMD_HELP = 'help'
+DESCR_HELP = 'show available commands.'
 CMD_QUIT = 'quit'
+DESCR_QUIT = 'exit the program.'
 
 
 def set_context(new_context):
@@ -120,12 +122,12 @@ class Placeholder:
         return self.name.upper()
 
 
-def _register(command, func, context=None, kwargs=None):
+def _register(command, func, context=None, kwargs=None, description=None):
     """Register func as a handler for the given command."""
     if kwargs is None:
         kwargs = {}
     pattern = Pattern(command, context)
-    commands.append((pattern, func, kwargs))
+    commands.append((pattern, func, kwargs, description))
 
 
 class Pattern:
@@ -283,15 +285,17 @@ class Pattern:
 async def get_help(**_):
     """Get a list of the commands you can give."""
     print('Available commands:')
-    cmds = sorted(c.orig_pattern for c, _, _ in commands if c.is_active())
-    cmds.insert(0, cmds.pop(cmds.index(CMD_HELP)))  # Перемещение команды help в начало списка для красоты
-    for c in cmds:
-        print(c)
+    cmds = sorted((c.orig_pattern, d) for c, _, _, d in commands if c.is_active())
+    cmd_help = cmds.pop(cmds.index((CMD_HELP, DESCR_HELP)))
+    cmds.insert(0, cmd_help)  # Перемещение команды help в начало списка для красоты
+
+    for c, d in cmds:
+        print(f'[{c}] - {d}')
 
 
 commands = [
-    (Pattern(CMD_HELP), get_help, {}),  # help command is built-in
-    (Pattern(CMD_QUIT), sys.exit, {}),  # quit command is built-in
+    (Pattern(CMD_HELP), get_help, {}, DESCR_HELP),  # help command is built-in
+    (Pattern(CMD_QUIT), sys.exit, {}, DESCR_QUIT),  # quit command is built-in
 ]
 
 
@@ -311,13 +315,16 @@ def get_prompt() -> str:
 async def unknown_command(command):
     """Called when a command is unknown."""
     print('Unknown command [%s].' % command)
+    print()
     await get_help()
 
 
 def when(command: str, context=None, **kwargs):
-    """Decorator for command functions."""
+    """Decorator for command functions.
+    Takes the docstring of func and set it as command description."""
     def wrapper(func):
-        _register(command, func, context, kwargs)
+        description: str = func.__doc__
+        _register(command, func, context, kwargs, description)
         return func
 
     return wrapper
@@ -351,7 +358,7 @@ async def handle_command(dao: HolderDao, cmd: str):
     func: callable
     kwargs: dict
 
-    for pattern, func, kwargs in _available_commands():
+    for pattern, func, kwargs, _ in _available_commands():
         args = kwargs.copy()
         matches = pattern.match(input_words)
         if matches is not None:

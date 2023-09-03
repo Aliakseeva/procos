@@ -1,26 +1,21 @@
+from typing import Iterable
+
 from procos.cli import when, set_context, get_context
 from procos.dao.holder import HolderDao
 from procos.database.models import Projects
-from procos.services.general import data_as_markdown
+from procos.services.general import data_as_markdown, check_input
 
 
 @when('project', context=None)
 async def project_menu(**_):
-    print('Menu ~PROJECT~\n'
-          'Available commands:\n'
-          '\t[list] - list all projects;\n'
-          '\t[create] - create new project;\n'
-          '\t[attach] - attach a contract to the project;\n'
-          '\t[check] - mark project\'s contract as completed; \n'
-          '\n'
-          '[back] - get back to the main menu.\n'
-          )
+    """show project menu."""
     context = 'project'
     set_context(context)
 
 
 @when('list', context='project')
-async def list_all_contracts(dao: HolderDao, **_):
+async def list_all_projects(dao: HolderDao, **_):
+    """list all projects."""
     projects: list[Projects] = await dao.project.get_projects_list()
     if projects:
         print(data_as_markdown([project.to_df() for project in projects]))
@@ -30,6 +25,7 @@ async def list_all_contracts(dao: HolderDao, **_):
 
 @when('create', context='project')
 async def create_new_project(dao: HolderDao, **_):
+    """create a new project."""
     # available = await dao.contract.check_active_exist()
     active_contract_exist = await check_active_contracts(dao=dao)
     if active_contract_exist:
@@ -44,6 +40,7 @@ async def create_new_project(dao: HolderDao, **_):
 
 @when('attach', context='project')
 async def attach_contract_to_project(dao: HolderDao, project_id_: int = None, **_):
+    """attach a contract to the project."""
     if project_id_ is None:
         active_contract_exits = await check_active_contracts(dao=dao)
         if active_contract_exits:
@@ -52,8 +49,12 @@ async def attach_contract_to_project(dao: HolderDao, project_id_: int = None, **
                 print(f'Choose the project to attach a contract to:')
                 for project in projects:
                     print(project)
+                allowed_values = map(lambda x: x.id_, projects)
                 project_id_ = int(input(f'Input the project ID:\n'
                                         f'... '))
+                if not check_input(user_input=project_id_, allowed_values=allowed_values):
+                    print('Wrong input.')
+                    return
             else:
                 print('There is should be at least one project created.\n'
                       'To create a project: [project] -> [create].')
@@ -67,6 +68,10 @@ async def attach_contract_to_project(dao: HolderDao, project_id_: int = None, **
         print(contract)
     contract_id_ = int(input(f'Input the contract ID:\n'
                              f'... '))
+    allowed_values = map(lambda x: x.id_, active_contracts)
+    if not check_input(user_input=contract_id_, allowed_values=allowed_values):
+        print('Wrong input.')
+        return
     attached = await dao.contract.attach_to_project(project_id_=project_id_,
                                                     contract_id_=contract_id_)
     if attached:
@@ -75,6 +80,7 @@ async def attach_contract_to_project(dao: HolderDao, project_id_: int = None, **
 
 @when('back', context='project')
 async def back(**_):
+    """get back to the main menu."""
     context = None
     set_context(context)
 
