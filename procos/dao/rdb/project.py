@@ -1,6 +1,5 @@
-from sqlalchemy import select
+from sqlalchemy import select, insert, or_
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, exists, ChunkedIteratorResult, insert, or_
 
 from procos.dao.rdb.base import BaseDAO
 from procos.database.models import Projects, Contracts
@@ -16,10 +15,17 @@ class ProjectDAO(BaseDAO[Projects]):
     async def get_projects_list(self):
         return await self._get_list()
 
-    async def get_free_projects(self) -> list[Projects]:
+    async def get_available_projects(self) -> list[Projects]:
         """Get a list of projects with no ACTIVE contracts."""
-        # stmt = select(Projects).where(or_(Projects.contracts is []))  # TODO
-        stmt = select(Projects).where(Projects.contracts is None)  # TODO
+        stmt = (
+            select(Projects)
+            .where(
+                or_(
+                    ~Projects.contracts.any(Contracts.status == 'active'),
+                    Projects.contracts == None,
+                )
+            )
+        )
         projects = await self.session.execute(stmt)
         return projects.scalars().all()
 

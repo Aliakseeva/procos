@@ -9,7 +9,7 @@ class Contracts(Base):
     __tablename__ = "contracts"
 
     id_: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column(unique=True)
+    title: Mapped[str]
     created_date: Mapped[Date] = mapped_column(Date(),
                                                server_default=func.current_date(),
                                                nullable=False,
@@ -44,7 +44,7 @@ class Projects(Base):
     __tablename__ = "projects"
 
     id_: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column(unique=True)
+    title: Mapped[str]
     created_date: Mapped[Date] = mapped_column(Date(),
                                                server_default=func.current_date(),
                                                nullable=False,

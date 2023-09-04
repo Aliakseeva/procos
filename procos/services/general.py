@@ -8,9 +8,9 @@ TABLE_ALIGN = 'left'        # "right", "center", "left", None
 
 def data_as_table(data: list[dict]) -> str:
     """Convert database models to human-readable tables."""
-
+    formatted = [d.to_df() for d in data]
     index = [i for i in range(1, len(data) + 1)]
-    df = DataFrame(data, index=index)
+    df = DataFrame(formatted, index=index)
     return tabulate(df, headers='keys', tablefmt=TABLE_STYLE, stralign=TABLE_ALIGN)
 
 

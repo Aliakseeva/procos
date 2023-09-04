@@ -1,4 +1,4 @@
-from sqlalchemy import select, exists, ChunkedIteratorResult, insert, and_
+from sqlalchemy import select, exists, ChunkedIteratorResult, insert, and_, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, date
 from procos.dao.rdb.base import BaseDAO
@@ -31,10 +31,10 @@ class ContractDAO(BaseDAO[Contracts]):
         return contracts.scalars().all()
 
     async def get_free_contracts_with_status(self, status: str) -> list[Contracts]:
-        stmt = select(Contracts).where(and_(Contracts.status == status, Contracts.project_id_ is None))
+        stmt = select(Contracts).where(and_(Contracts.status == status, Contracts.project_id_ == None))\
+            .order_by(Contracts.id_)
         contracts = await self.session.execute(stmt)
         return contracts.scalars().all()
-# TODO: sort  by id
 
     async def add_contract(self, data: dict) -> Contracts:
         stmt = insert(Contracts).values(**data).returning(Contracts)

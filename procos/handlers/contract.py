@@ -17,7 +17,7 @@ async def list_all_contracts(dao: HolderDao, **_):
     """list all contracts."""
     contracts: list[Contracts] = await dao.contract.get_contracts_list()
     if contracts:
-        print(data_as_table([contract.to_df() for contract in contracts]))
+        print(data_as_table(contracts))
     else:
         print('There is not any contract exists.')
 
@@ -43,8 +43,7 @@ async def change_contract_status(dao: HolderDao, cmd: str, **_):
     contracts_list: list[Contracts] = await choose_contract(dao=dao, status=current_status)
     if contracts_list:
         print(f'Available contracts:')
-        show_contracts(contracts_list=contracts_list)
-
+        print(data_as_table(contracts_list))
         print(f'Input the ID {cmd} the contract:')
         allowed_values = map(lambda x: x.id_, contracts_list)
         id_ = check_id_input(input('... '), allowed_values=allowed_values)
@@ -65,14 +64,6 @@ async def back(**_):
     """get back to the main menu."""
     context = None
     set_context(context)
-
-
-def show_contracts(contracts_list: list):
-    index = [i for i in range(1, len(contracts_list) + 1)]
-    data = [contract.to_df() for contract in contracts_list]
-    df = DataFrame(data, index=index).to_markdown()
-    print(df)
-    print()
 
 
 async def change_status_service(id_: int, dao: HolderDao, contracts_list: list, cmd: str, new_status: str):

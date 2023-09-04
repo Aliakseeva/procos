@@ -18,9 +18,9 @@ async def list_all_projects(dao: HolderDao, **_):
     """list all projects."""
     projects: list[Projects] = await dao.project.get_projects_list()
     if projects:
-        print(data_as_table([project.to_df() for project in projects]))
+        print(data_as_table(projects))
     else:
-        print('There is not any projects exists.')
+        print('There are no projects.')
 
 
 @when('create', context='project')
@@ -41,15 +41,20 @@ async def create_new_project(dao: HolderDao, **_):
 @when('attach', context='project')
 async def attach_contract_to_project(dao: HolderDao, project_id_: int = None, **_):
     """attach a contract to the project."""
+    active_contracts = await dao.contract.get_free_contracts_with_status(status='active')
+    if not active_contracts:
+        print('There are no ACTIVE contracts to attach to a project.\n'
+              'Create new: [contract] -> [create], or\n'
+              'confirm draft: [contract] -> [confirm].')
+        return
+
     if project_id_ is None:
         active_contract_exits = await check_active_contracts(dao=dao)
         if active_contract_exits:
-            free_projects = await dao.project.get_free_projects()
-            print(free_projects)
+            free_projects = await dao.project.get_available_projects()
             if free_projects:
                 print(f'Choose the project to attach a contract to:')
-                for project in free_projects:
-                    print(project)
+                print(data_as_table(free_projects))
                 allowed_values = map(lambda x: x.id_, free_projects)
                 project_id_ = check_id_input(input(f'Input the project ID:\n'
                                                    f'... '), allowed_values=allowed_values)
@@ -57,16 +62,15 @@ async def attach_contract_to_project(dao: HolderDao, project_id_: int = None, **
                     print('Wrong input.')
                     return
             else:
-                print('There is should be at least one project created.\n'
-                      'To create a project: [project] -> [create].')
+                print('No projects or all of them have any ACTIVE contract.\n'
+                      'Create a project: [project] -> [create], or\n'
+                      'Complete project\'s contract: [project] -> [complete].')
                 return
         else:
             return
 
     print(f'Choose the contract to attach to this project:')
-    active_contracts = await dao.contract.get_contracts_with_status(status='active')
-    for contract in active_contracts:
-        print(contract)
+    print(data_as_table(active_contracts))
     allowed_values = map(lambda x: x.id_, active_contracts)
     contract_id_ = check_id_input(input(f'Input the contract ID:\n'
                                         f'... '), allowed_values=allowed_values)
