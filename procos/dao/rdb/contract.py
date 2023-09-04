@@ -31,8 +31,15 @@ class ContractDAO(BaseDAO[Contracts]):
         return contracts.scalars().all()
 
     async def get_free_contracts_with_status(self, status: str) -> list[Contracts]:
-        stmt = select(Contracts).where(and_(Contracts.status == status, Contracts.project_id_ == None))\
+        stmt = (
+            select(Contracts)
+            .where(
+                and_(Contracts.status == status,
+                     Contracts.project_id_ == None,         # noqa
+                     )
+            )
             .order_by(Contracts.id_)
+        )
         contracts = await self.session.execute(stmt)
         return contracts.scalars().all()
 

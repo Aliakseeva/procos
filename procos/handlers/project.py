@@ -1,8 +1,7 @@
-from typing import Iterable
-
-from procos.cli import when, set_context, get_context
+from procos.cli import when, set_context
 from procos.dao.holder import HolderDao
 from procos.database.models import Projects
+from procos.handlers import complete_contract
 from procos.services.general import data_as_table, check_id_input
 
 
@@ -82,6 +81,39 @@ async def attach_contract_to_project(dao: HolderDao, project_id_: int = None, **
                                                     contract_id_=contract_id_)
     if attached:
         print(f'The contract has been added successfully.')
+
+
+@when('check', context='project')
+async def check_contract_in_project(dao: HolderDao, **_):
+    """check the contract in the project as completed."""
+    active_projects = await dao.project.get_active_projects()
+    if not active_projects:
+        print('There are no projects with ACTIVE contracts.')
+        return
+
+    print(f'Choose the project to which the contract belongs to:')
+    print(data_as_table(active_projects))
+    allowed_values = map(lambda x: x.id_, active_projects)
+    project_id_ = check_id_input(input(f'Input the project ID:\n'
+                                       f'... '), allowed_values=allowed_values)
+    if not project_id_:
+        print('Wrong input.')
+        return
+
+    project = next(filter(lambda x: x.id_ == project_id_, active_projects))
+    active_contracts = list(filter(lambda x: x.status == 'active', project.contracts))
+    contracts_ids = map(lambda x: x.id_,active_contracts)
+    print(f'Choose the contract in this project:')
+    print(data_as_table(active_contracts))
+    contract_id_ = check_id_input(input(f'Input the contract ID:\n'
+                                        f'... '), allowed_values=contracts_ids)
+    if not contract_id_:
+        print('Wrong input.')
+        return
+
+    status_changed = await complete_contract(dao=dao, contract_id=contract_id_)
+    if status_changed:
+        print(f'The status has been changed to COMPLETED.')
 
 
 @when('back', context='project')

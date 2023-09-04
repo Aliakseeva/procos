@@ -16,14 +16,25 @@ class ProjectDAO(BaseDAO[Projects]):
         return await self._get_list()
 
     async def get_available_projects(self) -> list[Projects]:
-        """Get a list of projects with no ACTIVE contracts."""
+        """Get a list of projects with NO active contracts."""
         stmt = (
             select(Projects)
             .where(
                 or_(
                     ~Projects.contracts.any(Contracts.status == 'active'),
-                    Projects.contracts == None,
+                    Projects.contracts == None,     # noqa
                 )
+            )
+        )
+        projects = await self.session.execute(stmt)
+        return projects.scalars().all()
+
+    async def get_active_projects(self) -> list[Projects]:
+        """Get a list of projects WITH active contracts."""
+        stmt = (
+            select(Projects)
+            .where(
+                Projects.contracts.any(Contracts.status == 'active')
             )
         )
         projects = await self.session.execute(stmt)
@@ -32,5 +43,5 @@ class ProjectDAO(BaseDAO[Projects]):
     async def add_project(self, data: dict):
         stmt = insert(Projects).values(**data).returning(Projects)
         new_project = await self.session.execute(stmt)
-        # await self.session.commit()
+        # await self.session.commit()       # there is committing after successful title input
         return new_project.scalar()
