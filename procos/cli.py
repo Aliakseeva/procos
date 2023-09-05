@@ -8,24 +8,9 @@ Features:
 + context system allows to create nested menu
 """
 
-import re
 import sys
-
-from procos.dao.holder import HolderDao
-
-# try:
-#     import readline  # noqa: adds readline semantics to input()
-# except ImportError:
-#     pass
-#
-# try:
-#     from shutil import get_terminal_size
-# except ImportError:
-#     try:
-#         from backports.shutil_get_terminal_size import get_terminal_size
-#     except ImportError:
-#         def get_terminal_size(fallback=(80, 24)):
-#             return fallback
+from procos.services.project import ProjectSystem
+from procos.services.contract import ContractSystem
 
 # Commands will only be available if their current context is "within" the currently
 # active context, a function defined by '_match_context()`.
@@ -350,14 +335,13 @@ def _available_commands():
     return available_commands
 
 
-async def handle_command(dao: HolderDao, cmd: str):
+async def handle_command(cmd: str, system: ContractSystem | ProjectSystem):
     """Handle a command typed by the user."""
     input_words: list = cmd.lower().split()
-
+    system_type = 'contracts' if isinstance(system, ContractSystem) else 'projects'
     pattern: Pattern
     func: callable
     kwargs: dict
-
     for pattern, func, kwargs, _ in _available_commands():
         args = kwargs.copy()
         matches = pattern.match(input_words)
@@ -365,28 +349,10 @@ async def handle_command(dao: HolderDao, cmd: str):
             args.update(matches)
             # any command except quit
             if pattern.orig_pattern != CMD_QUIT:
-                args['dao'] = dao
                 args['cmd'] = cmd
+                args[system_type] = system
             await func(**args)
             break
     else:
         await unknown_command(cmd)
     print()
-
-
-# def say(msg):
-#     """Print a message.
-#
-#     Unlike print(), this deals with de-denting and wrapping of text to fit
-#     within the width of the terminal.
-#
-#     Paragraphs separated by blank lines in the input will be wrapped
-#     separately.
-#
-#     """
-#     msg = str(msg)
-#     msg = re.sub(r'^[ \t]*(.*?)[ \t]*$', r'\1', msg, flags=re.M)
-#     width = get_terminal_size()[0]
-#     paragraphs = re.split(r'\n(?:[ \t]*\n)', msg)
-#     formatted = (textwrap.fill(p.strip(), width=width) for p in paragraphs)
-#     print('\n\n'.join(formatted))

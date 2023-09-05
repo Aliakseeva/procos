@@ -22,7 +22,7 @@ class ProjectDAO(BaseDAO[Projects]):
             .where(
                 or_(
                     ~Projects.contracts.any(Contracts.status == 'active'),
-                    Projects.contracts == None,     # noqa
+                    Projects.contracts == None,     # noqa: E711
                 )
             )
         )
@@ -43,5 +43,5 @@ class ProjectDAO(BaseDAO[Projects]):
     async def add_project(self, data: dict):
         stmt = insert(Projects).values(**data).returning(Projects)
         new_project = await self.session.execute(stmt)
-        # await self.session.commit()       # there is committing after successful title input
+        await self.session.commit()
         return new_project.scalar()
