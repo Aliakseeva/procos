@@ -1,3 +1,7 @@
+"""
+Config load from environment.
+"""
+
 from dataclasses import dataclass
 import dotenv
 from pydantic_settings import BaseSettings

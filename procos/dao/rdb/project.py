@@ -1,3 +1,6 @@
+"""
+Data access object for projects.
+"""
 from sqlalchemy import select, insert, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,14 +12,16 @@ class ProjectDAO(BaseDAO[Projects]):
     def __init__(self, session: AsyncSession):
         super().__init__(Projects, session)
 
-    async def get_project_by_id(self, id_: int):
+    async def get_project_by_id(self, id_: int) -> Projects:
         return await self._get_one_by_id(id_)
 
-    async def get_projects_list(self):
+    async def get_projects_list(self) -> list[Projects]:
         return await self._get_list()
 
     async def get_available_projects(self) -> list[Projects]:
-        """Get a list of projects with NO active contracts."""
+        """
+        :return:  list of projects with NO active contracts.
+        """
         stmt = (
             select(Projects)
             .where(
@@ -30,7 +35,10 @@ class ProjectDAO(BaseDAO[Projects]):
         return projects.scalars().all()
 
     async def get_active_projects(self) -> list[Projects]:
-        """Get a list of projects WITH active contracts."""
+        """
+
+        :return: Get a list of projects WITH active contracts.
+        """
         stmt = (
             select(Projects)
             .where(
@@ -40,7 +48,11 @@ class ProjectDAO(BaseDAO[Projects]):
         projects = await self.session.execute(stmt)
         return projects.scalars().all()
 
-    async def add_project(self, data: dict):
+    async def add_project(self, data: dict) -> Projects:
+        """
+        :param data: fields of new project
+        :return: created project instance
+        """
         stmt = insert(Projects).values(**data).returning(Projects)
         new_project = await self.session.execute(stmt)
         await self.session.commit()

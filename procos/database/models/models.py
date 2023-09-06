@@ -1,3 +1,7 @@
+"""
+Database models declaration.
+"""
+
 from sqlalchemy import ForeignKey, Date, func, CheckConstraint, String
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import Mapped

@@ -1,3 +1,6 @@
+"""
+System for managing contracts.
+"""
 from procos.dao.holder import HolderDao
 from procos.database.models import Contracts
 from procos.services.base import BaseSystem
@@ -76,6 +79,14 @@ class ContractSystem(BaseSystem):
         return contracts_list
 
     async def _change_status(self, id_: int, contracts_list: list, cmd: str, new_status: str):
+        """
+        Check if it is possible to change contract status.
+        :param id_: ID of the contract to change its status
+        :param contracts_list: a list of contracts available to status change
+        :param cmd: a command passing by the user
+        :param new_status: new status based on the command
+        :return:
+        """
         contract_to_change: Contracts | None = await self.dao.contract.get_contract_by_id(id_=id_)
         if contract_to_change and contract_to_change in contracts_list:
             status_changed = await self._change_status_hub(cmd=cmd, contract_id=contract_to_change.id_)

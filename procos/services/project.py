@@ -1,3 +1,6 @@
+"""
+System for managing projects.
+"""
 from procos.dao.holder import HolderDao
 from procos.database.models import Projects, Contracts
 from procos.services.base import BaseSystem

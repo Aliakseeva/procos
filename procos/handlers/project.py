@@ -1,3 +1,6 @@
+"""
+Handlers of commands related to the project system.
+"""
 from procos.cli import when, set_context
 from procos.services.project import ProjectSystem
 

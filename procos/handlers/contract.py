@@ -1,8 +1,6 @@
 """
-Handle commands of CONTRACT menu, set context.
+Handlers of commands related to the contract system.
 """
-
-
 from procos.cli import when, set_context
 from procos.services.contract import ContractSystem
 

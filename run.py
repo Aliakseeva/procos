@@ -15,26 +15,7 @@ def create_pool(db_url: str, echo: bool):
     return async_session
 
 
-async def main():
-    """Wrapper for command line"""
-    config = load_config()
-    pool = create_pool(db_url=config.db.DATABASE_URL, echo=False)
 
-    while True:
-        systems = {
-            None: None,
-            'contract': get_contract_system,
-            'project': get_project_system,
-        }
-        context_system = systems[get_context()]
-        cmd = input(get_prompt()).strip()
-        if not cmd:
-            continue
-        async with pool() as session:
-            # DI
-            dao = HolderDao(session=session)
-            system = await context_system(dao=dao) if context_system else None
-            await handle_command(cmd=cmd, system=system)
 
 
 def run():

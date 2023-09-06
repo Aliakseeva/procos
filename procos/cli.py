@@ -1,5 +1,5 @@
 """
-CLI создан на основе adventurelib
+CLI based on adventurelib
 https://github.com/lordmauve/adventurelib
 
 Features:
@@ -9,8 +9,12 @@ Features:
 """
 
 import sys
-from procos.services.project import ProjectSystem
-from procos.services.contract import ContractSystem
+
+from procos.database.pool import create_pool
+from procos.config import load_config
+from procos.dao.holder import HolderDao
+from procos.services.project import ProjectSystem, get_project_system
+from procos.services.contract import ContractSystem, get_contract_system
 
 # Commands will only be available if their current context is "within" the currently
 # active context, a function defined by '_match_context()`.
@@ -356,3 +360,25 @@ async def handle_command(cmd: str, system: ContractSystem | ProjectSystem):
     else:
         await unknown_command(cmd)
     print()
+
+
+async def main():
+    """Wrapper for command line"""
+    config = load_config()
+    pool = create_pool(db_url=config.db.DATABASE_URL, echo=False)
+
+    while True:
+        systems = {
+            None: None,
+            'contract': get_contract_system,
+            'project': get_project_system,
+        }
+        context_system = systems[get_context()]
+        cmd = input(get_prompt()).strip()
+        if not cmd:
+            continue
+        async with pool() as session:
+            # DI
+            dao = HolderDao(session=session)
+            system = await context_system(dao=dao) if context_system else None
+            await handle_command(cmd=cmd, system=system)
