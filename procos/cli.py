@@ -10,6 +10,7 @@ Features:
 
 import sys
 
+from procos.const import CONTEXT_SEP, CMD_HELP, CMD_QUIT, DESCR_HELP, DESCR_QUIT
 from procos.database.pool import create_pool
 from procos.config import load_config
 from procos.dao.holder import HolderDao
@@ -19,13 +20,6 @@ from procos.services.contract import ContractSystem, get_contract_system
 # Commands will only be available if their current context is "within" the currently
 # active context, a function defined by '_match_context()`.
 current_context = None
-# The separator that defines the context hierarchy
-CONTEXT_SEP = '.'
-# Standard commands look
-CMD_HELP = 'help'
-DESCR_HELP = 'show available commands.'
-CMD_QUIT = 'quit'
-DESCR_QUIT = 'exit the program.'
 
 
 def set_context(new_context):

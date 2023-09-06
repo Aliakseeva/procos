@@ -45,7 +45,11 @@ class ContractDAO(BaseDAO[Contracts]):
         :param status: status of contracts to filter by
         :return: list of contracts with passed status
         """
-        stmt = select(Contracts).where(Contracts.status == status)
+        stmt = (
+            select(Contracts)
+            .where(Contracts.status == status)
+            .order_by(Contracts.id_)
+        )
         contracts = await self.session.execute(stmt)
         return contracts.scalars().all()
 

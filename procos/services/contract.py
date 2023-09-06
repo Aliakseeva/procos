@@ -108,7 +108,7 @@ class ContractSystem(BaseSystem):
             'complete': self._complete_contract,
         }
         func = hub[cmd]
-        status_changed = await func(dao=self.dao, contract_id=contract_id)
+        status_changed = await func(contract_id=contract_id)
         return status_changed
 
 

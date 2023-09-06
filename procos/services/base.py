@@ -6,11 +6,9 @@ from dataclasses import dataclass
 
 from tabulate import tabulate
 
+from procos.const import TABLE_ALIGN, TABLE_STYLE
 from procos.dao.holder import HolderDao
 from procos.database.models import Projects, Contracts
-
-TABLE_STYLE = 'fancy_grid'  # fancy_grid, pretty, grid
-TABLE_ALIGN = 'left'  # "right", "center", "left", None
 
 
 @dataclass
