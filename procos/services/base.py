@@ -42,7 +42,7 @@ class BaseSystem(ABC):
             allowed_values = map(lambda x: x.id_, values)
         print(self.data_as_table(values))
         selected_id_ = self.check_id_input(
-            input("Input ID to select:\n" f"... "), allowed_values=allowed_values
+            input("Input ID to select:\n... "), allowed_values=allowed_values
         )
         if not selected_id_:
             print("Wrong input.")

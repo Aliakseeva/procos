@@ -20,13 +20,13 @@ class ProjectSystem(BaseSystem):
 
     async def create(self):
         """
-        Creates a new project. Any free and ACTIVE contract required.
+        Creates a new project. Any FREE and ACTIVE contract required.
         :return:
         """
-        active_contracts_exist = await self._check_active_contracts()
+        active_contracts_exist = await self._check_free_active_contracts()
         if not active_contracts_exist:
             print(
-                "There is should be at least one ACTIVE contract to create the project.\n"
+                "There is should be at least one FREE and ACTIVE contract to create the project.\n"
                 "To make the contract ACTIVE: [contract] -> [confirm]."
             )
             return
@@ -57,7 +57,7 @@ class ProjectSystem(BaseSystem):
         if not projects:
             return
 
-        print(f"Choose the project to attach a contract to:")
+        print("Choose the project to attach a contract to:")
         project_id_ = await self._select(values=projects)
         if not project_id_:
             return
@@ -83,7 +83,7 @@ class ProjectSystem(BaseSystem):
         )
         if not active_contracts:
             print(
-                "There are no ACTIVE contracts to attach to a project.\n"
+                "There are no FREE and ACTIVE contracts to attach to a project.\n"
                 "Create new: [contract] -> [create], or\n"
                 "confirm draft: [contract] -> [confirm]."
             )
@@ -166,12 +166,12 @@ class ProjectSystem(BaseSystem):
         """
         return next(filter(lambda x: x.id_ == project_id_, projects))
 
-    async def _check_active_contracts(self) -> bool:
+    async def _check_free_active_contracts(self) -> bool:
         """
-        Check if there is any ACTIVE contracts exists.
+        Check if there is any FREE and ACTIVE contracts exists.
         :return:
         """
-        active_contracts_exist = await self.dao.contract.check_active_exist()
+        active_contracts_exist = await self.dao.contract.check_free_active_exist()
         return active_contracts_exist
 
 

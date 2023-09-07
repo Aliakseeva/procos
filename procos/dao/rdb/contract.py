@@ -24,12 +24,19 @@ class ContractDAO(BaseDAO[Contracts]):
         await self.session.commit()
         return new_contract.scalar()
 
-    async def check_active_exist(self) -> bool:
+    async def check_free_active_exist(self) -> bool:
         """
 
-        :return: True if active contract exists
+        :return: True if free and active contract exists
         """
-        stmt = exists(Contracts.id_).where(Contracts.status == "active").select()
+        stmt = (
+            exists(Contracts.id_)
+            .where(and_(
+                Contracts.status == "active",
+                Contracts.project_id_ == None,  # noqa: E711
+            ))
+            .select()
+        )
         existing_active: ChunkedIteratorResult = await self.session.execute(stmt)
         return existing_active.scalar_one()
 

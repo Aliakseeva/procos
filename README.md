@@ -20,7 +20,18 @@
 git clone https://github.com/Aliakseeva/MenuApp
 ```
 
-##### 2. Run docker-compose:
+##### 2. Set up .evn file, for example:
+
+```text
+DB_HOST=postgres
+DB_PORT=5432
+DB_NAME=postgres
+DB_USER=postgres
+DB_PASS=postgres
+```
+
+
+##### 3. Run docker-compose:
 
 Make sure you are located in project repository!
 
