@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Generic, TypeVar
 
-from sqlalchemy import Result, select
+from sqlalchemy import Result, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from procos.database.models import Base
@@ -25,3 +25,6 @@ class BaseDAO(Generic[Model]):
     async def _get_list(self) -> Sequence[Model]:
         list_: Result[Model] = await self.session.execute(select(self.model))
         return list_.scalars().all()
+
+    async def delete_all(self):
+        await self.session.execute(delete(self.model))

@@ -3,6 +3,7 @@ Base system for inherit.
 """
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Any, Optional
 
 from tabulate import tabulate
 
@@ -16,23 +17,23 @@ class BaseSystem(ABC):
     dao: HolderDao
 
     @staticmethod
-    def data_as_table(data: list[dict]) -> str:
+    def data_as_table(data: list[Contracts | Projects]) -> str:
         """Convert database models to human-readable tables."""
         formatted = [d.to_table() for d in data]
         return tabulate(formatted, headers="keys", tablefmt=TABLE_STYLE, stralign=TABLE_ALIGN)
 
     @staticmethod
-    def check_id_input(user_input: str, allowed_values: list) -> int | None:
+    def check_id_input(user_input: str, allowed_values: list[Any]) -> int | None:
         """Check if user's input is allowed."""
         if not user_input.isdigit():
-            return
+            return None
         if int(user_input) not in allowed_values:
-            return
+            return None
         return int(user_input)
 
     async def _select(
-        self, values: list[Projects | Contracts], allowed_values: list = None
-    ) -> int:
+        self, values: list[Projects | Contracts], allowed_values: list | None = None
+    ) -> int | None:
         """
         Choose the project or contract.
         :param values: a list of available projects or contracts to choose
@@ -46,7 +47,7 @@ class BaseSystem(ABC):
         )
         if not selected_id_:
             print("Wrong input.")
-            return
+            return None
         return selected_id_
 
     async def _complete_contract(self, contract_id: int) -> bool:

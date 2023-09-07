@@ -8,6 +8,13 @@
 📜 SQLAlchemy ORM
 📝 Alembic database migration tool
 🐳 Docker containers
+✅ Pytest
+```
+
+## Fast start:
+###### Type help to get available commands:
+```bash
+> help
 ```
 
 
@@ -90,9 +97,3 @@ python3 run.py
 
 ###### *If you get `unicodeencodeerror` (usually on Windows), set `TABLE_STYLE = 'grid'` in procos/const.py*
 ***
-
-
-###### Type help to get available commands:
-```bash
-> help
-```

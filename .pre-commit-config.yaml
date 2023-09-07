@@ -45,8 +45,9 @@ repos:
     rev: v1.0.0
     hooks:
     -   id: mypy
-        exclude: migrations
+        exclude: ^tests/
         additional_dependencies: [ "types-redis",  "types-aiofiles" ]
+        args: ["--ignore-missing-imports"]
 
 # Форматирует код под PEP8 c помощью black
 -   repo: https://github.com/psf/black

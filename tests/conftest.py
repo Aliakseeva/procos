@@ -1,136 +1,92 @@
-import json
-import os
-from collections.abc import Generator
-from dataclasses import dataclass, field
-from typing import Any
+import asyncio
+from collections.abc import AsyncGenerator, Generator
+from pathlib import Path
 
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.orm import sessionmaker
-from sqlmodel import SQLModel
-from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel.pool import StaticPool
+from alembic.command import upgrade
+from alembic.config import Config as AlembicConfig
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import close_all_sessions, sessionmaker
 
-from app.core.config import BASEDIR
-from app.db.cache import get_cache
-from app.db.database import get_session
-from app.db.models import Dish, Menu, Submenu
-from app.main import app
-
-
-@dataclass
-class FakeCacheService:
-    """Fake cache service."""
-
-    storage: dict = field(default_factory=dict)
-
-    async def set(self, key: str, value: Any, **kwargs):
-        """Sets an object to the cache."""
-        self.storage[key] = value
-
-    async def get(self, key: str):
-        """Gets an object from the cache."""
-        return self.storage.get(key)
-
-    async def delete(self, key: str):
-        """Removes an object from the cache."""
-        return self.storage.pop(key, None)
+from procos.dao.holder import HolderDao
+from procos.services.contract import ContractSystem, get_contract_system
+from procos.services.project import ProjectSystem, get_project_system
 
 
 @pytest_asyncio.fixture
-async def async_client():
-    async with AsyncClient(
-        app=app,
-        base_url="http://test",
-    ) as client:
-        yield client
+async def session(pool: sessionmaker) -> AsyncGenerator[AsyncSession, None]:
+    async with pool() as session_:
+        yield session_
 
 
-@pytest_asyncio.fixture(autouse=True)
-async def session_db_override(test_session) -> None:
-    def get_test_session() -> Generator[Generator, None, None]:
-        yield test_session
+@pytest.fixture(scope="session")
+def postgres_url() -> str:
+    return "postgresql+asyncpg://postgres:postgres@localhost:5435/postgres"
 
-    app.dependency_overrides[get_session] = get_test_session
+
+@pytest.fixture(scope="session")
+def pool(postgres_url: str) -> Generator[sessionmaker, None, None]:
+    engine = create_async_engine(url=postgres_url)
+    pool_: async_sessionmaker[AsyncSession] = async_sessionmaker(
+        bind=engine, expire_on_commit=False, autoflush=False
+    )
+    yield pool_
+    close_all_sessions()
+
+
+@pytest_asyncio.fixture
+async def dao(session: AsyncSession) -> AsyncGenerator:
+    dao_ = HolderDao(session=session)
+    yield dao_
+    await truncate_all(dao=dao_)
+
+
+@pytest.fixture(scope="session")
+def path():
+    path_ = Path(__file__).parent
+    return path_
+
+
+@pytest.fixture(scope="session")
+def event_loop():
+    try:
+        return asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        return loop
 
 
 @pytest_asyncio.fixture(scope="function")
-async def test_session() -> AsyncSession:
-    async_engine = create_async_engine(
-        "sqlite+aiosqlite://",
-        poolclass=StaticPool,
-        future=True,
-    )
-    async_session = sessionmaker(
-        async_engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-    )
-
-    async with async_session() as session:
-        async with async_engine.begin() as connection:
-            await connection.run_sync(SQLModel.metadata.create_all)
-
-        yield session
-
-    async with async_engine.begin() as connection:
-        await connection.run_sync(SQLModel.metadata.drop_all)
-
-    await async_engine.dispose()
-
-
-@pytest_asyncio.fixture(autouse=True)
-async def cache_override(test_cache) -> None:
-    def get_test_cache() -> Generator[Generator, None, None]:
-        yield test_cache
-
-    app.dependency_overrides[get_cache] = get_test_cache
+async def test_contract(dao: HolderDao) -> ContractSystem:
+    contract = await get_contract_system(dao=dao)
+    return contract
 
 
 @pytest_asyncio.fixture(scope="function")
-async def test_cache() -> FakeCacheService:
-    redis = FakeCacheService()
-    return redis
+async def test_project(dao: HolderDao) -> ProjectSystem:
+    project = await get_project_system(dao=dao)
+    return project
 
 
-@pytest.fixture(autouse=True)
-def reset_dependency_overrides() -> Generator:
-    yield
-    app.dependency_overrides = {}
+@pytest.fixture(scope="session")
+def alembic_config(postgres_url: str, path: Path) -> AlembicConfig:
+    alembic_cfg = AlembicConfig(str(path.parent / "alembic.ini"))
+    alembic_cfg.set_main_option(
+        "script_location",
+        str(path.parent / "procos" / "database" / "migrations"),
+    )
+    alembic_cfg.set_main_option("sqlalchemy.url", postgres_url)
+    return alembic_cfg
 
 
-@pytest.fixture(scope="function")
-def test_data() -> dict:
-    path = os.path.join(BASEDIR, "tests/data/test_data.json")
-    with open(path) as file:
-        return json.loads(file.read())
+@pytest.fixture(scope="session", autouse=True)
+def upgrade_db_schema(alembic_config: AlembicConfig):
+    upgrade(alembic_config, "head")
 
 
-@pytest_asyncio.fixture(autouse=True)
-async def initial_db_data(test_session: AsyncSession) -> dict:
-    path = os.path.join(BASEDIR, "tests/data/test_preload_db_data.json")
-    with open(path) as file:
-        db_data = json.loads(file.read())
-    for menu in db_data["fill_menu"]:
-        menu = Menu(**db_data["fill_menu"][menu])
-        test_session.add(menu)
-        await test_session.commit()
-    for submenu in db_data["fill_submenu"]:
-        submenu = Submenu(**db_data["fill_submenu"][submenu])
-        test_session.add(submenu)
-        await test_session.commit()
-    for submenu in db_data["fill_submenu_m2"]:
-        submenu = Submenu(**db_data["fill_submenu_m2"][submenu])
-        test_session.add(submenu)
-        await test_session.commit()
-    for dish in db_data["fill_dish"]:
-        dish = Dish(**db_data["fill_dish"][dish])
-        test_session.add(dish)
-        await test_session.commit()
-    for dish in db_data["fill_dish_m2"]:
-        dish = Dish(**db_data["fill_dish_m2"][dish])
-        test_session.add(dish)
-        await test_session.commit()
-    return db_data
+async def truncate_all(dao: HolderDao):
+    await dao.contract.delete_all()
+    await dao.project.delete_all()
+    await dao.commit()

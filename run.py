@@ -5,13 +5,13 @@ Application runner. Usage:
 import asyncio
 
 from procos.cli import main
-from procos.handlers import *  # noqa: F401
+from procos.handlers import *  # noqa: F403, F401
 
 
 def run():
     try:
         asyncio.run(main())
-    except EOFError:
+    except (EOFError, KeyboardInterrupt):
         print()
 
 

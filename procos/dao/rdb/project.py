@@ -1,6 +1,8 @@
 """
 Data access object for projects.
 """
+from collections.abc import Sequence
+
 from sqlalchemy import insert, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,7 +17,7 @@ class ProjectDAO(BaseDAO[Projects]):
     async def get_project_by_id(self, id_: int) -> Projects:
         return await self._get_one_by_id(id_)
 
-    async def get_projects_list(self) -> list[Projects]:
+    async def get_projects_list(self) -> Sequence[Projects]:
         return await self._get_list()
 
     async def get_available_projects(self) -> list[Projects]:

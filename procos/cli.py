@@ -9,6 +9,8 @@ Features:
 """
 
 import sys
+from collections.abc import Callable
+from typing import Any, Optional
 
 from procos.config import load_config
 from procos.const import CMD_HELP, CMD_QUIT, CONTEXT_SEP, DESCR_HELP, DESCR_QUIT
@@ -33,7 +35,7 @@ def set_context(new_context):
     current_context = new_context
 
 
-def get_context() -> str:
+def get_context() -> Any | None:
     """Get the current command context."""
     return current_context
 
@@ -269,7 +271,7 @@ async def get_help(**_):
         print(f"[{c}] - {d}")
 
 
-commands = [
+commands: list[tuple] = [
     (Pattern(CMD_HELP), get_help, {}, DESCR_HELP),  # help command is built-in
     (Pattern(CMD_QUIT), sys.exit, {}, DESCR_QUIT),  # quit command is built-in
 ]
@@ -332,7 +334,7 @@ async def handle_command(cmd: str, system: ContractSystem | ProjectSystem):
     input_words: list = cmd.lower().split()
     system_type = "contracts" if isinstance(system, ContractSystem) else "projects"
     pattern: Pattern
-    func: callable
+    func: Callable
     kwargs: dict
     for pattern, func, kwargs, _ in _available_commands():
         args = kwargs.copy()

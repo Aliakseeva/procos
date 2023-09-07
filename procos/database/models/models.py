@@ -20,7 +20,6 @@ class Contracts(Base):
     )
     signed_date: Mapped[Date] = mapped_column(Date(), nullable=True)
     status: Mapped[str] = mapped_column(default="draft")
-    # CheckConstraint(r"contracts.status IN ('draft', 'active', 'closed')"
     project_id_: Mapped[int] = mapped_column(ForeignKey("projects.id_"), nullable=True)
     project: Mapped["Projects"] = relationship(
         "Projects", back_populates="contracts", lazy="selectin"
@@ -38,7 +37,7 @@ class Contracts(Base):
         Formatting of the model for nice representation in table.
         :return:
         """
-        project: Projects = f"ID {self.project.id_}: {self.project.title}" if self.project else "-"
+        project = f"ID {self.project.id_}: {self.project.title}" if self.project else "-"
         signed = self.signed_date if self.signed_date else "-"
         return {
             "id": self.id_,

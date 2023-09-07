@@ -1,6 +1,7 @@
 """
 Data access object for contracts..
 """
+from collections.abc import Sequence
 from datetime import date
 
 from sqlalchemy import ChunkedIteratorResult, and_, exists, insert, select
@@ -31,10 +32,12 @@ class ContractDAO(BaseDAO[Contracts]):
         """
         stmt = (
             exists(Contracts.id_)
-            .where(and_(
-                Contracts.status == "active",
-                Contracts.project_id_ == None,  # noqa: E711
-            ))
+            .where(
+                and_(
+                    Contracts.status == "active",
+                    Contracts.project_id_ == None,  # noqa: E711
+                )
+            )
             .select()
         )
         existing_active: ChunkedIteratorResult = await self.session.execute(stmt)
@@ -43,7 +46,7 @@ class ContractDAO(BaseDAO[Contracts]):
     async def get_contract_by_id(self, id_: int) -> Contracts:
         return await self._get_one_by_id(id_)
 
-    async def get_contracts_list(self) -> list[Contracts]:
+    async def get_contracts_list(self) -> Sequence[Contracts]:
         return await self._get_list()
 
     async def get_contracts_with_status(self, status: str) -> list[Contracts]:
