@@ -1,11 +1,11 @@
 """
 Data access object for projects.
 """
-from sqlalchemy import select, insert, or_
+from sqlalchemy import insert, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from procos.dao.rdb.base import BaseDAO
-from procos.database.models import Projects, Contracts
+from procos.database.models import Contracts, Projects
 
 
 class ProjectDAO(BaseDAO[Projects]):
@@ -22,13 +22,10 @@ class ProjectDAO(BaseDAO[Projects]):
         """
         :return:  list of projects with NO active contracts.
         """
-        stmt = (
-            select(Projects)
-            .where(
-                or_(
-                    ~Projects.contracts.any(Contracts.status == 'active'),
-                    Projects.contracts == None,     # noqa: E711
-                )
+        stmt = select(Projects).where(
+            or_(
+                ~Projects.contracts.any(Contracts.status == "active"),
+                Projects.contracts == None,  # noqa: E711
             )
         )
         projects = await self.session.execute(stmt)
@@ -39,12 +36,7 @@ class ProjectDAO(BaseDAO[Projects]):
 
         :return: Get a list of projects WITH active contracts.
         """
-        stmt = (
-            select(Projects)
-            .where(
-                Projects.contracts.any(Contracts.status == 'active')
-            )
-        )
+        stmt = select(Projects).where(Projects.contracts.any(Contracts.status == "active"))
         projects = await self.session.execute(stmt)
         return projects.scalars().all()
 

@@ -3,7 +3,7 @@ Data access object for contracts..
 """
 from datetime import date
 
-from sqlalchemy import select, exists, ChunkedIteratorResult, insert, and_
+from sqlalchemy import ChunkedIteratorResult, and_, exists, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from procos.dao.rdb.base import BaseDAO
@@ -29,7 +29,7 @@ class ContractDAO(BaseDAO[Contracts]):
 
         :return: True if active contract exists
         """
-        stmt = exists(Contracts.id_).where(Contracts.status == 'active').select()
+        stmt = exists(Contracts.id_).where(Contracts.status == "active").select()
         existing_active: ChunkedIteratorResult = await self.session.execute(stmt)
         return existing_active.scalar_one()
 
@@ -45,11 +45,7 @@ class ContractDAO(BaseDAO[Contracts]):
         :param status: status of contracts to filter by
         :return: list of contracts with passed status
         """
-        stmt = (
-            select(Contracts)
-            .where(Contracts.status == status)
-            .order_by(Contracts.id_)
-        )
+        stmt = select(Contracts).where(Contracts.status == status).order_by(Contracts.id_)
         contracts = await self.session.execute(stmt)
         return contracts.scalars().all()
 
@@ -62,9 +58,10 @@ class ContractDAO(BaseDAO[Contracts]):
         stmt = (
             select(Contracts)
             .where(
-                and_(Contracts.status == status,
-                     Contracts.project_id_ == None,         # noqa: E711
-                     )
+                and_(
+                    Contracts.status == status,
+                    Contracts.project_id_ == None,  # noqa: E711
+                )
             )
             .order_by(Contracts.id_)
         )
@@ -79,8 +76,8 @@ class ContractDAO(BaseDAO[Contracts]):
         :return: True on success
         """
         contract = await self.get_contract_by_id(id_=id_)
-        setattr(contract, 'status', new_status)
-        setattr(contract, 'signed_date', date.today())
+        setattr(contract, "status", new_status)
+        setattr(contract, "signed_date", date.today())
         await self.session.commit()
         await self.session.refresh(contract)
         return True
@@ -93,7 +90,7 @@ class ContractDAO(BaseDAO[Contracts]):
         :return: True on success
         """
         contract = await self.get_contract_by_id(id_=id_)
-        setattr(contract, 'status', new_status)
+        setattr(contract, "status", new_status)
         await self.session.commit()
         await self.session.refresh(contract)
         return True
@@ -106,7 +103,7 @@ class ContractDAO(BaseDAO[Contracts]):
         :return: True on success
         """
         contract = await self.get_contract_by_id(id_=contract_id_)
-        setattr(contract, 'project_id_', project_id_)
+        setattr(contract, "project_id_", project_id_)
         await self.session.commit()
         await self.session.refresh(contract)
         return True

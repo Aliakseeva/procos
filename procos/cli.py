@@ -10,12 +10,12 @@ Features:
 
 import sys
 
-from procos.const import CONTEXT_SEP, CMD_HELP, CMD_QUIT, DESCR_HELP, DESCR_QUIT
-from procos.database.pool import create_pool
 from procos.config import load_config
+from procos.const import CMD_HELP, CMD_QUIT, CONTEXT_SEP, DESCR_HELP, DESCR_QUIT
 from procos.dao.holder import HolderDao
-from procos.services.project import ProjectSystem, get_project_system
+from procos.database.pool import create_pool
 from procos.services.contract import ContractSystem, get_contract_system
+from procos.services.project import ProjectSystem, get_project_system
 
 # Commands will only be available if their current context is "within" the currently
 # active context, a function defined by '_match_context()`.
@@ -45,19 +45,19 @@ def _validate_context(context):
 
     err = []
     if not context:
-        err.append('be empty')
+        err.append("be empty")
     if context.startswith(CONTEXT_SEP):
-        err.append('start with {sep}')
+        err.append("start with {sep}")
     if context.endswith(CONTEXT_SEP):
-        err.append('end with {sep}')
+        err.append("end with {sep}")
     if CONTEXT_SEP * 2 in context:
-        err.append('contain {sep}{sep}')
+        err.append("contain {sep}{sep}")
     if err:
         if len(err) > 1:
-            msg = ' or '.join([', '.join(err[:-1]), err[-1]])
+            msg = " or ".join([", ".join(err[:-1]), err[-1]])
         else:
             msg = err[0]
-        msg = 'Context {ctx!r} may not ' + msg
+        msg = "Context {ctx!r} may not " + msg
         raise ValueError(msg.format(sep=CONTEXT_SEP, ctx=context))
 
 
@@ -85,10 +85,9 @@ def _match_context(context, active_context):
     # The active_context matches if it starts with context and is followed by
     # the end of the string or the separator
     clen = len(context)
-    return (
-            active_context.startswith(context) and
-            active_context[clen:clen + len(CONTEXT_SEP)] in ('', CONTEXT_SEP)
-    )
+    return active_context.startswith(context) and active_context[
+        clen : clen + len(CONTEXT_SEP)
+    ] in ("", CONTEXT_SEP)
 
 
 class InvalidCommand(Exception):
@@ -132,15 +131,13 @@ class Pattern:
         for w in words:
             if not w.isalpha():
                 raise InvalidCommand(
-                    'Invalid command %r' % pattern +
-                    'Commands may consist of letters only.'
+                    "Invalid command %r" % pattern + "Commands may consist of letters only."
                 )
             if w.isupper():
                 arg = w.lower()
                 if arg in arg_names:
                     raise InvalidCommand(
-                        'Invalid command %r' % pattern +
-                        ' Identifiers may only be used once'
+                        "Invalid command %r" % pattern + " Identifiers may only be used once"
                     )
                 arg_names.append(arg)
                 match.append(Placeholder(arg))
@@ -149,9 +146,9 @@ class Pattern:
                 match.append(w)
             else:
                 raise InvalidCommand(
-                    'Invalid command %r' % pattern +
-                    '\n\nWords in commands must either be in lowercase or ' +
-                    'capitals, not a mix.'
+                    "Invalid command %r" % pattern
+                    + "\n\nWords in commands must either be in lowercase or "
+                    + "capitals, not a mix."
                 )
         self.arg_names = arg_names
         self.prefix = []
@@ -159,18 +156,14 @@ class Pattern:
             if isinstance(w, Placeholder):
                 break
             self.prefix.append(w)
-        self.pattern = match[len(self.prefix):]
+        self.pattern = match[len(self.prefix) :]
         self.fixed = len(self.pattern) - self.placeholders
 
     def __repr__(self):
-        ctx = ''
+        ctx = ""
         if self.pattern_context:
-            ctx = ', context=%r' % self.pattern_context
-        return '%s(%r%s)' % (
-            type(self).__name__,
-            self.orig_pattern,
-            ctx
-        )
+            ctx = ", context=%r" % self.pattern_context
+        return f"{type(self).__name__}({self.orig_pattern!r}{ctx})"
 
     @staticmethod
     def word_combinations(have, placeholders):
@@ -230,10 +223,10 @@ class Pattern:
         if len(input_words) < len(self.arg_names):
             return None
 
-        if input_words[:len(self.prefix)] != self.prefix:
+        if input_words[: len(self.prefix)] != self.prefix:
             return None
 
-        input_words = input_words[len(self.prefix):]
+        input_words = input_words[len(self.prefix) :]
 
         if not input_words and not self.pattern:
             return {}
@@ -259,7 +252,7 @@ class Pattern:
                         if cword != word:
                             break
                 else:
-                    return {k: ' '.join(v) for k, v in matches.items()}
+                    return {k: " ".join(v) for k, v in matches.items()}
             except StopIteration:
                 continue
         return None
@@ -267,13 +260,13 @@ class Pattern:
 
 async def get_help(**_):
     """Get a list of the commands you can give."""
-    print('Available commands:')
+    print("Available commands:")
     cmds = sorted((c.orig_pattern, d) for c, _, _, d in commands if c.is_active())
     cmd_help = cmds.pop(cmds.index((CMD_HELP, DESCR_HELP)))
     cmds.insert(0, cmd_help)  # Перемещение команды help в начало списка для красоты
 
     for c, d in cmds:
-        print(f'[{c}] - {d}')
+        print(f"[{c}] - {d}")
 
 
 commands = [
@@ -284,20 +277,20 @@ commands = [
 
 def get_prompt() -> str:
     """Get the prompt text."""
-    prompt = '| | Main menu |'
+    prompt = "| | Main menu |"
     context = get_context()
     if context:
-        levels = context.split(sep='.')
+        levels = context.split(sep=".")
         for i, level in enumerate(levels, start=2):
-            prompt += f' {level.capitalize()} |'
+            prompt += f" {level.capitalize()} |"
             # prompt += f'--{"-" * i} {level.capitalize()}\n'
-    prompt += '\n> '
+    prompt += "\n> "
     return prompt
 
 
 async def unknown_command(command):
     """Called when a command is unknown."""
-    print('Unknown command [%s].' % command)
+    print("Unknown command [%s]." % command)
     print()
     await get_help()
 
@@ -305,6 +298,7 @@ async def unknown_command(command):
 def when(command: str, context=None, **kwargs):
     """Decorator for command functions.
     Takes the docstring of func and set it as command description."""
+
     def wrapper(func):
         description: str = func.__doc__
         _register(command, func, context, kwargs, description)
@@ -336,7 +330,7 @@ def _available_commands():
 async def handle_command(cmd: str, system: ContractSystem | ProjectSystem):
     """Handle a command typed by the user."""
     input_words: list = cmd.lower().split()
-    system_type = 'contracts' if isinstance(system, ContractSystem) else 'projects'
+    system_type = "contracts" if isinstance(system, ContractSystem) else "projects"
     pattern: Pattern
     func: callable
     kwargs: dict
@@ -347,7 +341,7 @@ async def handle_command(cmd: str, system: ContractSystem | ProjectSystem):
             args.update(matches)
             # any command except quit
             if pattern.orig_pattern != CMD_QUIT:
-                args['cmd'] = cmd
+                args["cmd"] = cmd
                 args[system_type] = system
             await func(**args)
             break
@@ -364,8 +358,8 @@ async def main():
     while True:
         systems = {
             None: None,
-            'contract': get_contract_system,
-            'project': get_project_system,
+            "contract": get_contract_system,
+            "project": get_project_system,
         }
         context_system = systems[get_context()]
         cmd = input(get_prompt()).strip()
