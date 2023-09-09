@@ -35,6 +35,7 @@ DB_PORT=5432
 DB_NAME=postgres
 DB_USER=postgres
 DB_PASS=postgres
+POSTGRES_HOST_AUTH_METHOD=trust
 ```
 
 
